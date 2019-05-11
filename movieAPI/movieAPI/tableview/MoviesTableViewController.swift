@@ -15,74 +15,76 @@ import SDWebImage
 class MoviesTableViewController: UITableViewController {
     var theMovies = [Movie]()
     var movieSelected:Movie = Movie()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        let group = DispatchGroup()
         tableView.backgroundColor = UIColor.black
         tableView.separatorStyle = UITableViewCell.SeparatorStyle.none
         self.title = "Movies"
-        let group = DispatchGroup()
-        group.enter()
-            let imgPath = "https://image.tmdb.org/t/p/w200/"
-            let url = URL(string: "https://api.themoviedb.org/3/discover/movie?api_key=c5850ed73901b8d268d0898a8a9d8bff&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1")!
-            
-            let config = URLSessionConfiguration.default
-            let session = URLSession(configuration: config)
+ 
+        let imgPath = "https://image.tmdb.org/t/p/w200/"
+        let postData = NSData(data: "{}".data(using: String.Encoding.utf8)!)
+        var request = NSMutableURLRequest(url: NSURL(string: "https://api.themoviedb.org/3/discover/movie?api_key=c5850ed73901b8d268d0898a8a9d8bff&language=en-US")! as URL,
+                                          cachePolicy: .useProtocolCachePolicy,
+                                          timeoutInterval: 10.0)
+        request.httpMethod = "GET"
+        request.httpBody = postData as Data
         
-            let task = session.dataTask(with: url) { (data, response, error) in
-                
-                
-                if error != nil {
-                    print(error!.localizedDescription)
-                } else {
+        let session = URLSession.shared
+        let dataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) -> Void in
+            if (error != nil) {
+                print(error)
+            } else {
+               
+                let httpResponse = response as? HTTPURLResponse
+//                print(httpResponse)
+               // print (data!)
+                group.enter()
+                do {
                     
-                    do {
-                        
-                        let json = try JSONSerialization.jsonObject(with:data!) as! [String:Any]
-                        
-                        for (key, value) in json
-                        {
-                            if (key == "results"){
-                                
-                                if let resultsArray:[ [String: Any] ]  = value as? [[ String: Any]]
-                                {
-//                                    print("KEY RESULTS FOUND")
-                                    
-                                    for dic in resultsArray
+                    let json = try JSONSerialization.jsonObject(with:data!) as! [String:Any]
+                    
+                            for (key, value) in json
+                            {
+                               
+                                print(key)
+                                print(value)
+                                if (key == "results"){
+                    
+                                    if let resultsArray:[ [String: Any] ]  = value as? [[ String: Any]]
                                     {
-                                        let newMovie = Movie()
-                                        newMovie.title = dic["original_title"]! as! String
-                                        newMovie.overview = dic["overview"]! as! String
-                                        newMovie.photo = imgPath + String (dic["poster_path"]! as! String)
-                                        newMovie.release = dic["release_date"]! as! String
-
-                                        self.theMovies.append(newMovie)
-                                        
-
-                                    }
-                                }
-                                
-                            }
-                            
-                        }
-                        
-                        
-                    }catch {
-                        print("## JSON Serialization step has FAILED ##")
-                    }
                     
-                }
+                    
+                                        for dic in resultsArray
+                                        {
+                                            let newMovie = Movie()
+                                            newMovie.title = dic["original_title"]! as! String
+                                            newMovie.overview = dic["overview"]! as! String
+                                            newMovie.photo = imgPath + String (dic["poster_path"]! as! String)
+                                            newMovie.release = dic["release_date"]! as! String
+                    
+                                            self.theMovies.append(newMovie)
+                                            group.notify(queue: DispatchQueue.main){
+                                                self.tableView.reloadData()
+                                            }
+                                        }
+                                        
+                                    }
+                    
+                                    }
+                    
+                                }
+                    
+                            group.leave()
+                    }catch {
+                            print("## JSON Serialization step has FAILED ##")
+                            }
+                
             }
-            task.resume()
-            group.leave()
-
+        })
+        dataTask.resume()
         
-        group.notify(queue: DispatchQueue.main) {
-            self.tableView.reloadData()
-            
-             print(self.theMovies.count)
-        }
-       
-       
     }
 
     
