@@ -1,0 +1,10 @@
+platform :ios, '12.1'
+
+target 'movieAPI' do
+#frameworks
+  use_frameworks! 
+  pod 'SDWebImage'
+
+end
+
+
